@@ -1,7 +1,7 @@
 ﻿name: Refresh Stores
 on:
   schedule:
-    - cron: '*/30 * * * *'  # tiap 30 menit: aman untuk batas deploy Vercel Hobby (100/hari) dan menit Actions repo private
+    - cron: '0 * * * *'  # tiap jam: menjaga jatah menit Actions repo private (2000/bulan)
   workflow_dispatch:
 
 permissions:
@@ -64,3 +64,4 @@ jobs:
           fi
           curl --fail --silent --show-error -X POST "$HOOK" > /dev/null
           echo "Deploy hook dipanggil"
+
