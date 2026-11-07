@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kopi Kenangan — Outlet & Menu</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--g1:#1a5632;--g2:#2d8a4e;--bg:#f3f4f6;--card:#fff;--txt:#1f2937;--txt2:#6b7280;--border:#e5e7eb}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt)}
+.hdr{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;padding:16px 16px 12px;position:sticky;top:0;z-index:100}
+.hdr-top{display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:20px;font-weight:700}.hdr .sub{font-size:12px;opacity:.7}
+.hdr-loc{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 10px;border-radius:8px;font-size:12px;cursor:pointer}
+.stats{display:flex;gap:16px;margin-top:10px}
+.stat{text-align:center;flex:1}.stat-n{font-size:22px;font-weight:700}.stat-l{font-size:10px;opacity:.7;text-transform:uppercase}
+.sbar{padding:8px 12px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:64px;z-index:99;display:flex;gap:6px}
+.sbar input{flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:0}
+.sbar input:focus{border-color:var(--g2);box-shadow:0 0 0 3px rgba(45,138,78,.1)}
+.sbar select{padding:9px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card)}
+.ctn{max-width:800px;margin:0 auto;padding:6px}
+.card{background:var(--card);border-radius:12px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;transition:all .15s;border:1px solid transparent}
+.card:hover{border-color:var(--g2);box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px)}
+.card-h{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 6px}
+.card-n{font-weight:600;font-size:14px;line-height:1.3}.card-c{font-size:11px;color:var(--txt2);margin-top:1px}
+.badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;transition:all .3s}
+.bg{background:#dcfce7;color:#166534}.bc{background:#fee2e2;color:#991b1b}
+.card-i{padding:4px 14px 10px;font-size:12px;color:var(--txt2);line-height:1.6}
+.card-i .hrs{color:var(--g1);font-weight:600}
+.card-i .dist{color:var(--g2);font-weight:500}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;opacity:0;transition:.2s}
+.ov.on{display:block;opacity:1}
+.mp{position:fixed;bottom:0;left:0;right:0;max-height:85vh;background:var(--card);border-radius:20px 20px 0 0;overflow:hidden;z-index:201;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.mp.on{transform:translateY(0)}
+.mp-h{padding:14px 18px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.mp-h h2{font-size:17px;font-weight:700}.mp-x{background:0;border:0;font-size:20px;cursor:pointer;color:var(--txt2);padding:4px 8px;border-radius:8px}
+.mp-x:hover{background:var(--bg)}
+.mp-c{overflow-y:auto;max-height:calc(85vh - 60px);-webkit-overflow-scrolling:touch}
+.mg{padding:8px 16px}
+.mg-t{font-size:12px;font-weight:700;color:var(--g1);padding:6px 0 4px;text-transform:uppercase;letter-spacing:.3px}
+.mi{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.mi:last-child{border:0}
+.mi-img{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0}
+.mi-body{flex:1;min-width:0}
+.mi-n{font-size:13px;font-weight:500;line-height:1.3}
+.mi-n.so{color:#d1d5db;text-decoration:line-through}
+.mi-p{font-size:12px;color:var(--g1);font-weight:700;margin-top:2px}
+.mi-p .orig{text-decoration:line-through;color:var(--txt2);font-weight:400;font-size:11px;margin-right:4px}
+.promo{font-size:9px;padding:2px 5px;border-radius:4px;background:#fef3c7;color:#92400e;margin-left:4px;font-weight:600}
+.ld{text-align:center;padding:40px;color:var(--txt2);font-size:13px}
+.ld::after{content:'';display:block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--g2);border-radius:50%;animation:spin .8s linear infinite;margin:12px auto 0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px 20px;color:var(--txt2)}
+.cnt{font-size:11px;color:var(--txt2);padding:6px 16px;text-align:center}
+.vg{border-top:1px solid #24283b;padding:10px 16px 14px}
+.vg-t{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.vg-r{display:flex;align-items:center;gap:10px;margin:7px 0;flex-wrap:wrap}
+.vg-l{font-size:11px;color:var(--txt2);min-width:90px}
+.vg-opts{display:flex;gap:5px;flex-wrap:wrap}
+.vg-o{background:#1a1d2e;border:1px solid #2a2e45;color:var(--txt);font-size:11.5px;padding:5px 11px;border-radius:14px;cursor:pointer}
+.vg-o.on{background:var(--acc);border-color:var(--acc);color:#000;font-weight:600}
+.vg-p{font-size:14px;font-weight:700;color:var(--acc)}
+.mi.sel{outline:1px solid var(--acc);border-radius:6px}
+</style>
+</head>
+<body>
+<div class="hdr">
+<div class="hdr-top">
+<div><h1>☕ Kopi Kenangan</h1><div class="sub">Outlet & Menu Real-Time</div></div>
+<button class="hdr-loc" id="locBtn" onclick="getLoc()">📍 Lokasi saya</button>
+</div>
+<div class="stats">
+<div class="stat"><div class="stat-n" id="tot">-</div><div class="stat-l">Total</div></div>
+<div class="stat"><div class="stat-n" id="opn" style="color:#86efac">-</div><div class="stat-l">🟢 Buka</div></div>
+<div class="stat"><div class="stat-n" id="cls" style="color:#fca5a5">-</div><div class="stat-l">🔴 Tutup</div></div>
+</div></div>
+<div class="sbar">
+<input type="text" id="q" placeholder="🔍 Cari outlet..." autocomplete="off">
+<select id="f"><option value="">Semua</option><option value="1">🟢 Buka</option><option value="0">🔴 Tutup</option></select>
+</div>
+<div class="ctn" id="list"><div class="ld">Memuat outlets...</div></div>
+<div class="ov" id="ov" onclick="cm()"></div>
+<div class="mp" id="mp">
+<div class="mp-h"><h2 id="mt">Menu</h2><button class="mp-x" onclick="cm()">✕</button></div>
+<div class="mp-c" id="mc"><div class="ld">Memuat menu...</div></div>
+</div>
+<script>
+let ALL=[],SHOW=[],totalAll=0,rtDone=new Set();
+const API=window.location.origin+'/api';
+let pending=[];
+const obs=new IntersectionObserver(entries=>{
+entries.forEach(e=>{if(e.isIntersecting){const c=e.target.dataset.code;if(c&&!rtDone.has(c)){rtDone.add(c);pending.push(c);}}});
+if(pending.length)flushRT();
+},{rootMargin:'200px'});
+
+function flushRT(){
+if(!pending.length)return;
+const batch=pending.splice(0,5);
+fetchRT(batch).then(()=>{if(pending.length)setTimeout(flushRT,300);});
+}
+
+function hav(a,b,c,d){const R=6371,r1=a*Math.PI/180,r2=c*Math.PI/180,dr=(c-a)*Math.PI/180,dd=(d-b)*Math.PI/180,x=Math.sin(dr/2)**2+Math.cos(r1)*Math.cos(r2)*Math.sin(dd/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+
+function dist(s){if(!s.latitude||!s.longitude)return null;try{return hav(parseFloat(s.latitude),parseFloat(s.longitude),-6.2,106.8)}catch{return null}}
+
+function getLoc(){if(!navigator.geolocation)return;document.getElementById('locBtn').textContent='⏳...';navigator.geolocation.getCurrentPosition(p=>{
+ALL.forEach(s=>{if(s.latitude&&s.longitude)s._d=hav(parseFloat(s.latitude),parseFloat(s.longitude),p.coords.latitude,p.coords.longitude)});
+ALL.sort((a,b)=>(a._d||999)-(b._d||999));
+show();document.getElementById('locBtn').textContent='📍 Terdekat';
+},()=>document.getElementById('locBtn').textContent='📍 Gagal')}
+
+async function load(){
+try{const r=await fetch(API+'/stores');const d=await r.json();ALL=d.stores;totalAll=d.total||ALL.length;show();}catch(e){document.getElementById('list').innerHTML='<div class="empty">Gagal memuat</div>'}}
+
+function show(list){
+const a=list||ALL;SHOW=a;
+const op=a.filter(s=>s.is_open).length;
+document.getElementById('tot').textContent=totalAll;
+document.getElementById('opn').textContent=op;
+document.getElementById('cls').textContent=a.length-op;
+const el=document.getElementById('list');
+obs.disconnect();
+if(!a.length){el.innerHTML='<div class="empty">🔍 Tidak ada outlet</div>';return}
+el.innerHTML=a.map(s=>`<div class="card" data-code="${s.code}" onclick="om('${s.code}','${(s.name||'').replace(/'/g,"\\'")}')">
+<div class="card-h"><div style="flex:1"><div class="card-n">${s.name||'?'}</div><div class="card-c">${s.code}</div></div>
+<span class="badge ${s.is_open?'bg':'bc'}" id="b-${s.code}">${s.is_open?'🟢 BUKA':'🔴 TUTUP'}</span></div>
+<div class="card-i"><div class="hrs">⏰ ${s.open&&s.close?`${s.open} - ${s.close}`:'Jam tidak tersedia'}</div>
+<div>📍 ${s.address||''}</div></div></div>`).join('');
+el.querySelectorAll('.card').forEach(c=>obs.observe(c));
+}
+
+function fl(){const q=document.getElementById('q').value.toLowerCase();const f=document.getElementById('f').value;let r=ALL;if(q)r=r.filter(s=>(s.name+s.code+s.address||'').toLowerCase().includes(q));if(f==='1')r=r.filter(s=>s.is_open);if(f==='0')r=r.filter(s=>!s.is_open);show(r)}
+
+async function fetchRT(codes){
+try{const r=await fetch(API+'/stores_realtime?codes='+codes.join(','));const d=await r.json();
+d.stores.forEach(s=>{
+if(!s._realtime)return;
+const idx=ALL.findIndex(x=>x.code===s.code);
+if(idx>=0){
+const old=ALL[idx].is_open;ALL[idx].is_open=s.is_open;
+if(old!==s.is_open){
+const b=document.getElementById('b-'+s.code);
+if(b){b.className='badge '+(s.is_open?'bg':'bc');b.textContent=s.is_open?'🟢 BUKA':'🔴 TUTUP';}
+// Update counts
+const op=ALL.filter(x=>x.is_open).length;
+document.getElementById('opn').textContent=op;
+document.getElementById('cls').textContent=totalAll-op;
+}}});}catch(e){}
+}
+
+async function om(c,n){
+document.getElementById('mt').textContent=n;document.getElementById('mc').innerHTML='<div class="ld">Memuat menu...</div>';
+document.getElementById('ov').classList.add('on');document.getElementById('mp').classList.add('on');
+try{const r=await fetch(API+'/menu/'+c);const d=await r.json();
+if(d.error){document.getElementById('mc').innerHTML=`<div class="ld">${d.error}</div>`;return}
+let h=`<div class="cnt">${d.available_items}/${d.total_items} items tersedia</div>`;
+for(const g of d.groups){h+=`<div class="mg"><div class="mg-t">${g.group_name} (${g.products.filter(p=>p.available).length}/${g.products.length})</div>`;
+for(const p of g.products)h+=`<div class="mi"${p.id?` onclick="ov('${c}','${p.id}',this)" style="cursor:pointer"`:''}>${p.image?`<img class="mi-img" src="${p.image}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
+<div class="mi-body"><div class="mi-n${p.available?'':' so'}">${p.name}${p.available?'':' (Habis)'}</div>
+<div class="mi-p">${p.original_price&&p.original_price!==p.price?`<span class="orig">Rp${p.original_price.toLocaleString()}</span>`:''}Rp${p.price.toLocaleString()}${p.has_promo?'<span class="promo">PROMO</span>':''}</div></div></div>`;h+='</div>'}
+document.getElementById('mc').innerHTML=h;}catch(e){document.getElementById('mc').innerHTML='<div class="ld">Gagal memuat menu</div>'}}
+
+// === Variant picker (size, temperature, sugar, dll) ===
+let VD=null,VOPTS=null;
+async function ov(code,id,el){
+if(VD&&VD.key===code+':'+id){VD.el.classList.remove('sel');VD=null;return}
+if(VD)VD.el.classList.remove('sel');
+el.classList.add('sel');VD={key:code+':'+id,el};
+const body=document.getElementById('vb')||(()=>{const b=document.createElement('div');b.id='vb';document.getElementById('mc').after(b);return b})();
+body.innerHTML='<div class="ld">Memuat varian...</div>';
+try{const r=await fetch(API+'/options/'+code+'/'+id);const d=await r.json();
+if(d.error){body.innerHTML='';return}
+VOPTS=d;
+let h=`<div class="vg"><div class="vg-t">Pilih varian</div>`;
+for(const dim of d.dimensions){
+h+=`<div class="vg-r"><span class="vg-l">${dim.name}</span><div class="vg-opts">`;
+for(const v of dim.values)h+=`<button class="vg-o${v===dim.values[0]?' on':''}" data-dim="${dim.code}" data-val="${v.id}" onclick="pick(this)">${v.label}</button>`;
+h+='</div></div>';}
+for(const a of (d.addons||[])){
+h+=`<div class="vg-r"><span class="vg-l">${a.name}</span><div class="vg-opts">`;
+for(const v of a.values)h+=`<button class="vg-o" data-addon="${a.code}" data-val="${v.id}" data-price="${v.price||0}" onclick="pickAdd(this)">${v.label}${v.price?` <b>+${(v.price/1000)}k</b>`:''}</button>`;
+h+='</div></div>';}
+h+=`<div class="vg-r"><span class="vg-l">Total</span><div class="vg-p" id="vprice"></div></div></div>`;
+body.innerHTML=h;
+calc();
+body.scrollIntoView({behavior:'smooth',block:'nearest'});
+}catch(e){body.innerHTML=''}}
+
+function pick(btn){
+btn.parentElement.querySelectorAll('.vg-o').forEach(b=>b.classList.remove('on'));
+btn.classList.add('on');
+calc();
+}
+
+function pickAdd(btn){
+btn.classList.toggle('on');
+calc();
+}
+
+function calc(){
+if(!VOPTS)return;
+const sel=[...document.querySelectorAll('#vb .vg-o.on')];
+// Combo key: dim-val sorted by dim code, ':'-joined with trailing ':'
+const key=sel.filter(b=>b.dataset.dim).map(b=>b.dataset.dim+'-'+b.dataset.val).sort((a,b)=>a.split('-')[0]-b.split('-')[0]).join(':')+':';
+let total=(VOPTS.variants&&VOPTS.variants[key]&&VOPTS.variants[key].price)||VOPTS.base_price||0;
+sel.forEach(b=>{if(b.dataset.price)total+=parseInt(b.dataset.price)});
+const el=document.getElementById('vprice');
+if(el)el.textContent='Rp'+total.toLocaleString();
+}
+function cm(){document.getElementById('ov').classList.remove('on');document.getElementById('mp').classList.remove('on')}
+let t;document.getElementById('q').addEventListener('input',()=>{clearTimeout(t);t=setTimeout(fl,200)});
+document.getElementById('f').addEventListener('change',fl);
+load();
+</script>
+</body>
+</html>
