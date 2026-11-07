@@ -1,4 +1,4 @@
-name: Refresh Stores
+﻿name: Refresh Stores
 on:
   schedule:
     - cron: '*/30 * * * *'  # tiap 30 menit: aman untuk batas deploy Vercel Hobby (100/hari) dan menit Actions repo private
@@ -28,6 +28,7 @@ jobs:
         run: python3 refresh_stores.py
 
       - name: Commit and push if changed
+        id: commit
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
@@ -36,13 +37,30 @@ jobs:
           git add stores.json
           if git diff --cached --quiet; then
             echo "No changes — skipping commit"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git commit -m "Auto-refresh stores [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
+          # [skip ci] = Vercel tidak membuat deploy otomatis (diblokir untuk commit bot); deploy dipicu lewat Deploy Hook di bawah.
+          git commit -m "Auto-refresh stores [$(date -u +%Y-%m-%dT%H:%M:%SZ)] [skip ci]"
           for i in 1 2 3; do
-            git pull --rebase origin "$BRANCH" && git push origin "$BRANCH" && exit 0
+            if git pull --rebase origin "$BRANCH" && git push origin "$BRANCH"; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "Push attempt $i failed, retrying in 10s..."
             sleep 10
           done
           echo "Push failed after 3 attempts"
           exit 1
+
+      - name: Trigger Vercel deploy
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Secret VERCEL_DEPLOY_HOOK belum diisi, deploy dilewati"
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST "$HOOK" > /dev/null
+          echo "Deploy hook dipanggil"
