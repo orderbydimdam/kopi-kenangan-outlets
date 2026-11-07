@@ -1,0 +1,48 @@
+name: Refresh Stores
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # tiap 30 menit: aman untuk batas deploy Vercel Hobby (100/hari) dan menit Actions repo private
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-stores
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test refresh validation
+        run: python3 -m unittest -v test_refresh_stores.py
+
+      - name: Fetch latest stores
+        run: python3 refresh_stores.py
+
+      - name: Commit and push if changed
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add stores.json
+          if git diff --cached --quiet; then
+            echo "No changes — skipping commit"
+            exit 0
+          fi
+          git commit -m "Auto-refresh stores [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
+          for i in 1 2 3; do
+            git pull --rebase origin "$BRANCH" && git push origin "$BRANCH" && exit 0
+            echo "Push attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "Push failed after 3 attempts"
+          exit 1
