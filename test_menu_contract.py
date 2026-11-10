@@ -17,6 +17,7 @@ class MenuContractTests(unittest.TestCase):
     def setUp(self):
         menu._menu_cache.clear()
         menu._token.update(val=None, t=0)
+        menu._state["kk_down_until"] = 0
 
     def payload(self, products):
         group = {
@@ -76,6 +77,7 @@ class MenuContractTests(unittest.TestCase):
     def call_menu(self, products):
         menu._menu_cache.clear()
         menu._token.update(val=None, t=0)
+        menu._state["kk_down_until"] = 0
         token = {"error_code": 0, "data": {"customer_name": "", "web_order_session_token": "synthetic-token"}, "msg": ""}
         with mock.patch.object(
             menu,

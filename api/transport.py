@@ -35,12 +35,13 @@ def _json_pairs(pairs):
 
 
 
-def request_json(path, payload, headers):
+def request_json(path, payload, headers, base_url=None):
     if type(path) is not str or not path.startswith("/") or "://" in path:
         raise IntegrationError("invalid upstream path")
-    url = BASE + path
+    base_url = base_url or BASE
+    url = base_url + path
     parts = urllib.parse.urlsplit(url)
-    base = urllib.parse.urlsplit(BASE)
+    base = urllib.parse.urlsplit(base_url)
     if (parts.scheme, parts.netloc) != (base.scheme, base.netloc) or not parts.path.startswith(base.path + "/"):
         raise IntegrationError("upstream host rejected")
     if type(payload) is not bytes:
@@ -72,8 +73,12 @@ def request_json(path, payload, headers):
             raise IntegrationError("invalid upstream JSON") from exc
     except IntegrationError:
         raise
+    except urllib.error.HTTPError as exc:
+        raise IntegrationError("upstream request failed: HTTP %s" % exc.code) from exc
     except (OSError, urllib.error.URLError, ValueError) as exc:
-        raise IntegrationError("upstream request failed") from exc
+        # Tanpa URL/header; hanya jenis error supaya mudah didiagnosis dari field "reason".
+        inner = getattr(exc, "reason", None) or exc
+        raise IntegrationError("upstream request failed: %s" % type(inner).__name__) from exc
     finally:
         if response is not None:
             close = getattr(response, "close", None)

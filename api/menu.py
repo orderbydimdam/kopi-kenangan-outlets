@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 import json
+import os
 import re
 import time
 import urllib.parse
@@ -218,28 +219,89 @@ def _fetch_menu(code):
     )
 
 
+# ---- Cadangan: juragankopi (POST /api/kk/menu, header x-store-token) ----
+# Token disimpan di environment variable Vercel JK_STORE_TOKEN. JANGAN ditulis di kode / frontend.
+BACKUP_BASE = os.environ.get("JK_BASE", "https://juragankopi.my.id/api/kk")
+_state = {"kk_down_until": 0}
+
+
+def _unwrap(payload):
+    """Backup bisa mengirim format Kopken apa adanya, atau dibungkus satu level lagi."""
+    if type(payload) is dict and "menu_groups" in payload:
+        return {"error_code": 0, "data": payload}
+    if type(payload) is dict and type(payload.get("data")) is dict and "menu_groups" in payload["data"] and "error_code" not in payload:
+        return {"error_code": 0, "data": payload["data"]}
+    if type(payload) is dict and type(payload.get("result")) is dict:
+        return _unwrap(payload["result"])
+    return payload
+
+
+def _fetch_backup(code):
+    token = os.environ.get("JK_STORE_TOKEN", "").strip()
+    if not token:
+        raise IntegrationError("backup tidak aktif: JK_STORE_TOKEN belum diisi")
+    payload = request_json(
+        "/menu",
+        json.dumps({"store_code": code}).encode(),
+        {"Content-Type": "application/json", "x-store-token": token},
+        base_url=BACKUP_BASE,
+    )
+    try:
+        menu = _parse_menu(_unwrap(payload), code)
+    except ValueError as exc:
+        keys = sorted(payload.keys())[:8] if type(payload) is dict else type(payload).__name__
+        raise IntegrationError("backup format tak dikenal (%s): %s" % (keys, exc))
+    menu["source"] = "backup"
+    return menu
+
+
+def _try_kopken(code):
+    last = None
+    for attempt in range(2):
+        try:
+            return _fetch_menu(code)
+        except (IntegrationError, ValueError, TypeError, KeyError) as exc:
+            last = "%s: %s" % (type(exc).__name__, exc)
+            _token.update(val=None, t=0)  # token mungkin kedaluwarsa: ambil baru lalu coba lagi
+    raise IntegrationError(last)
+
+
 def get_menu(code):
     if type(code) is not str or not _STORE.fullmatch(code):
         return None
     now = time.time()
     cached = _menu_cache.get(code)
-    if cached and now - cached["t"] < 300:
+    if cached and now - cached["t"] < cached.get("ttl", 300):
         return cached["data"]
-    result = None
-    for attempt in range(2):
+
+    result, errors = None, []
+    # 1) Kopken langsung (gratis). Kalau baru saja gagal, lewati 5 menit supaya tidak lambat.
+    if now >= _state["kk_down_until"]:
         try:
-            result = _fetch_menu(code)
-            break
-        except (IntegrationError, ValueError, TypeError, KeyError) as exc:
-            _last_error[code] = "%s: %s" % (type(exc).__name__, exc)
-            # Token mungkin kedaluwarsa di sisi Kopken: buang lalu coba sekali lagi dengan token baru.
-            _token.update(val=None, t=0)
+            result = _try_kopken(code)
+            result["source"] = "kopken"
+        except IntegrationError as exc:
+            errors.append("kopken: %s" % exc)
+            _state["kk_down_until"] = now + 300
+    else:
+        errors.append("kopken: dilewati (gagal <5 menit lalu)")
+
+    # 2) Cadangan juragankopi. Hasil di-cache 30 menit supaya hemat panggilan/saldo.
+    ttl = 300
     if result is None:
-        # Upstream sedang bermasalah: pakai salinan lama (maks 6 jam) daripada gagal total.
+        try:
+            result = _fetch_backup(code)
+            ttl = 1800
+        except IntegrationError as exc:
+            errors.append("backup: %s" % exc)
+
+    if result is None:
+        _last_error[code] = " | ".join(errors)
+        # Semua sumber gagal: pakai salinan lama (maks 6 jam) daripada gagal total.
         if cached and now - cached["t"] < 6 * 3600:
             return cached["data"]
         return None
-    _menu_cache[code] = {"data": result, "t": now}
+    _menu_cache[code] = {"data": result, "t": now, "ttl": ttl}
     return result
 
 
