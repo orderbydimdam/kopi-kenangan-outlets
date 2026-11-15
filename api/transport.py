@@ -74,11 +74,11 @@ def request_json(path, payload, headers, base_url=None):
     except IntegrationError:
         raise
     except urllib.error.HTTPError as exc:
-        raise IntegrationError("upstream request failed: HTTP %s" % exc.code) from exc
+        raise IntegrationError("upstream request failed: HTTP %s (%s)" % (exc.code, path)) from exc
     except (OSError, urllib.error.URLError, ValueError) as exc:
         # Tanpa URL/header; hanya jenis error supaya mudah didiagnosis dari field "reason".
         inner = getattr(exc, "reason", None) or exc
-        raise IntegrationError("upstream request failed: %s" % type(inner).__name__) from exc
+        raise IntegrationError("upstream request failed: %s (%s)" % (type(inner).__name__, path)) from exc
     finally:
         if response is not None:
             close = getattr(response, "close", None)
