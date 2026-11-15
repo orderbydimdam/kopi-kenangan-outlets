@@ -7,6 +7,11 @@ import urllib.parse
 
 from .transport import BASE, IntegrationError, MAX_BODY_BYTES, REQUEST_TIMEOUT, _open, request_json
 
+
+class StoreDataError(IntegrationError):
+    """Kopken membalas, tapi isi menu SATU outlet tidak bisa dipakai (kosong/rusak).
+    Ini bukan tanda Kopken down, jadi tidak boleh memicu jeda 5 menit untuk semua outlet."""
+
 HEADERS = {"Content-Type": "application/json", "language": "id", "time_zone": "7"}
 _token = {"val": None, "t": 0}
 _menu_cache = {}
@@ -222,7 +227,7 @@ def _fetch_menu(code):
 # ---- Cadangan: juragankopi (POST /api/kk/menu, header x-store-token) ----
 # Token disimpan di environment variable Vercel JK_STORE_TOKEN. JANGAN ditulis di kode / frontend.
 BACKUP_BASE = os.environ.get("JK_BASE", "https://juragankopi.my.id/api/kk")
-_state = {"kk_down_until": 0}
+_state = {"kk_down_until": 0, "kk_last_error": ""}
 
 
 def _unwrap(payload):
@@ -256,14 +261,15 @@ def _fetch_backup(code):
 
 
 def _try_kopken(code):
-    last = None
+    last, infra = None, False
     for attempt in range(2):
         try:
             return _fetch_menu(code)
         except (IntegrationError, ValueError, TypeError, KeyError) as exc:
             last = "%s: %s" % (type(exc).__name__, exc)
+            infra = isinstance(exc, IntegrationError)  # gagal koneksi/token/HTTP, bukan isi menu outlet
             _token.update(val=None, t=0)  # token mungkin kedaluwarsa: ambil baru lalu coba lagi
-    raise IntegrationError(last)
+    raise (IntegrationError if infra else StoreDataError)(last)
 
 
 def get_menu(code):
@@ -282,9 +288,13 @@ def get_menu(code):
             result["source"] = "kopken"
         except IntegrationError as exc:
             errors.append("kopken: %s" % exc)
-            _state["kk_down_until"] = now + 300
+            # Jeda 5 menit hanya kalau Kopken-nya yang bermasalah. Menu satu outlet yang
+            # kosong/rusak (mis. outlet tutup) tidak boleh memblokir semua outlet lain.
+            if not isinstance(exc, StoreDataError):
+                _state["kk_down_until"] = now + 300
+                _state["kk_last_error"] = str(exc)
     else:
-        errors.append("kopken: dilewati (gagal <5 menit lalu)")
+        errors.append("kopken: dilewati (gagal <5 menit lalu; penyebab: %s)" % (_state["kk_last_error"] or "tidak tercatat"))
 
     # 2) Cadangan juragankopi. Hasil di-cache 30 menit supaya hemat panggilan/saldo.
     ttl = 300

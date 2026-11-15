@@ -20,7 +20,7 @@ class BackupFallbackTest(unittest.TestCase):
         menu._menu_cache.clear()
         menu._last_error.clear()
         menu._token.update(val=None, t=0)
-        menu._state["kk_down_until"] = 0
+        menu._state.update(kk_down_until=0, kk_last_error="")
 
     def tearDown(self):
         menu._state["kk_down_until"] = 0
@@ -65,6 +65,25 @@ class BackupFallbackTest(unittest.TestCase):
             menu.get_menu("KK.A.B")
             menu.get_menu("KK.C.D")
         self.assertEqual(k.call_count, 2)  # hanya outlet pertama mencoba Kopken (2 percobaan)
+
+    def test_skip_reason_shows_original_failure(self):
+        with self.kopken_down(), mock.patch.dict(os.environ, {}, clear=True):
+            menu.get_menu("KK.A.B")
+            self.assertIsNone(menu.get_menu("KK.C.D"))
+        self.assertIn("dilewati", menu.last_error("KK.C.D"))
+        self.assertIn("HTTP 404", menu.last_error("KK.C.D"))
+
+    def test_bad_store_menu_does_not_pause_kopken_for_other_stores(self):
+        empty = {"error_code": 0, "data": {"menu_groups": []}}
+        with mock.patch.object(menu, "get_token", return_value="t"), \
+             mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch.object(menu, "_request_json", return_value=empty):
+            self.assertIsNone(menu.get_menu("KK.TUTUP.1"))
+        self.assertEqual(menu._state["kk_down_until"], 0)  # outlet tutup tidak memicu jeda global
+        with mock.patch.object(menu, "get_token", return_value="t"), \
+             mock.patch.object(menu, "_request_json", return_value=KOPKEN_FORMAT):
+            result = menu.get_menu("KK.BUKA.2")
+        self.assertEqual(result["source"], "kopken")
 
 
 if __name__ == "__main__":
